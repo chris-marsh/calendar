@@ -1,3 +1,19 @@
+/*********************************************************************************
+* Copyright (C) 2016, Chris Marsh <https://github.com/chris-marsh/fastIPvanish>  *
+*                                                                                *
+* This program is free software: you can redistribute it and/or modify it under  *
+* the terms of the GNU General Public License as published by the Free Software  *
+* Foundation, either version 3 of the License, or any later version.             *
+*                                                                                *
+* This program is distributed in the hope that it will be useful, but WITHOUT    *
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS  *
+* FOR A PARTICULAR PURPOSE.  See the GNU General Public License at               *
+* <http://www.gnu.org/licenses/> for more details.                               *
+*                                                                                *
+*                            WORK IN PROGRESS                                    *
+*                                                                                *
+*********************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -163,11 +179,9 @@ int main(int argc, char *argv[]) {
         month = now->tm_mon+1;
         year = now->tm_year+1900;
     }
-    /* print_three_months(day, month, year);    */
-    /* print_twelve_months(day, month, year);   */
-    month = 6; year = 2016;
-    dec_month(6, &month, &year);
-    printf("%d   %d\n", month, year);
+    print_one_month(day, month, year);
+     print_three_months(day, month, year);
+     print_twelve_months(day, month, year);
 
     return 0;
 }
