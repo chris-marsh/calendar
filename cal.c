@@ -53,14 +53,17 @@ int strToInt(char *str) {
     return strtol(str, &p, 10);
 }
 
-void dec_month(int *month, int *year) {
-    *month = *month - 1;
-    if (*month == 0) { *month=12, *year=*year-1; }
+void dec_month(int num, int *month, int *year) {
+    *year = *year - ((*month+num) / 12);
+    *month = *month - num;
+    if (*month < 0) *month = (12 - *month) % 12;
+    if (*month == 0) *month = 12;
 }
 
-void inc_month(int *month, int *year) {
-    *month = *month + 1;
-    if (*month == 13) { *month=1; *year=*year+1; }
+void inc_month(int num, int *month, int *year) {
+    *year = *year + ((*month+num) / 12);
+    *month = *month + num;
+    if (*month > 12) *month = *month % 12;
 }
 
 int first_day_of_month(int month, int year) {
@@ -68,7 +71,7 @@ int first_day_of_month(int month, int year) {
         month += 12;
         year--;
     }
-    int century = year / 100;
+    int century = year / 101;
     year = year % 100;
     return (((13 * (month + 1)) / 5) +
             (century / 4) + (5 * century) +
@@ -77,7 +80,7 @@ int first_day_of_month(int month, int year) {
 
 void get_month(char output[8][40], int weekday_start, int highlight_day, int month, int year) {
     int day, first_day, current_day, line=0;
-    char temp[40];
+    char temp[41];
 
     if ((month == 2) &&
             ((!(year % 4) && (year % 100)) || !(year % 400))) {
@@ -138,12 +141,10 @@ void print_three_months(int day, int month, int year) {
 
 void print_twelve_months(int day, int month, int year) {
     int line;
-    inc_month(&month, &year);
+    inc_month(1, &month, &year);
     for (line=0; line<4; line++) {
         print_three_months(0, month, year);
-        inc_month(&month, &year);
-        inc_month(&month, &year);
-        inc_month(&month, &year);
+        inc_month(3, &month, &year);
     }
 }
 
@@ -162,9 +163,11 @@ int main(int argc, char *argv[]) {
         month = now->tm_mon+1;
         year = now->tm_year+1900;
     }
-    // print_one_month(day, month, year);   
-    // print_three_months(day, month, year);
-    print_twelve_months(day, month, year);
+    /* print_three_months(day, month, year);    */
+    /* print_twelve_months(day, month, year);   */
+    month = 6; year = 2016;
+    dec_month(6, &month, &year);
+    printf("%d   %d\n", month, year);
 
     return 0;
 }
