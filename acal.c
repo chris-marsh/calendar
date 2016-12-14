@@ -9,9 +9,6 @@
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS  *
  * FOR A PARTICULAR PURPOSE.  See the GNU General Public License at               *
  * <http://www.gnu.org/licenses/> for more details.                               *
- *                                                                                *
- *                            WORK IN PROGRESS                                    *
- *                                                                                *
  **********************************************************************************/
 
 #include <stdio.h>
@@ -193,7 +190,7 @@ void usage(int exit_code) {
     puts("");
     puts("DESCRIPTION");
     puts("    Another CALendar displays a basic calendar. If no arguments");
-	puts("    are specified, the current month is displayed.");
+    puts("    are specified, the current month is displayed.");
     puts("");
     puts("OPTIONS");
     puts("    -1, --one		- display single month output (default)");
@@ -216,6 +213,11 @@ void usage(int exit_code) {
 void version() {
     puts("acal - Another CALendar 0.1 (14 December 2016)");
     exit(0);
+}
+
+void error(char *message) {
+    puts(message);
+    exit(-1);
 }
 
 int decode_switches(int argc, char *argv[]) {
@@ -283,6 +285,12 @@ int decode_switches(int argc, char *argv[]) {
             usage(-1);
     }
 
+    if (options.month<1 || options.month>12)
+        error("acal: illegal month value: use 1-12");
+
+    if (options.year<1 || options.year>2147483646)
+        error("acal: illegal year value: out of range");
+
     return optc;
 }
 
@@ -298,6 +306,8 @@ int main(int argc, char *argv[]) {
     options.year = highlight_date.year;
 
     decode_switches(argc, argv);
+
+    printf("Month: %d    Year: %d\n", options.month, options.year);
 
     switch (options.show_number_of_months) {
         case 1:
