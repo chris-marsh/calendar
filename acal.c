@@ -147,40 +147,35 @@ void get_month(char output[8][40], int month, int year) {
 }
 
 void print_one_month() {
-    char calendar_month[8][40];
+    char calendar[8][40];
     int line;
 
-    get_month(calendar_month, options.month, options.year);
+    get_month(calendar, options.month, options.year);
     for (line=0; line<8; line++)
-        puts(calendar_month[line]);
+        puts(calendar[line]);
 }
 
 void print_three_months(int month, int year) {
-    int line;
+    int i;
     char calendar[3][8][40];
 
-    get_month(calendar[1], month, year);
+    dec_month(1, &month, &year);
 
-    if (month - 1 == 0)
-        get_month(calendar[0], 12, year-1);
-    else
-        get_month(calendar[0], month-1, year);
+    for (i=0; i<3; i++) {
+        get_month(calendar[i], month, year);
+        inc_month(1, &month, &year);
+    }
 
-    if (month + 1 == 13)
-        get_month(calendar[2], 1, year+1);
-    else
-        get_month(calendar[2], month+1, year);
-
-    for (line=0; line<8; line++) {
-        printf("%-21s  %-21s  %-21s\n", calendar[0][line], calendar[1][line], calendar[2][line]);
+    for (i=0; i<8; i++) {
+        printf("%-21s  %-21s  %-21s\n", calendar[0][i], calendar[1][i], calendar[2][i]);
     }
 }
 
 void print_twelve_months(int month, int year) {
-    int line;
+    int i;
 
     inc_month(1, &month, &year);
-    for (line=0; line<4; line++) {
+    for (i=0; i<4; i++) {
         print_three_months(month, year);
         inc_month(3, &month, &year);
     }
