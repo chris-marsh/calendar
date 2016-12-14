@@ -22,6 +22,7 @@
 
 #define ANSI_COLOR_BLUE     "\x1b[34m"
 #define ANSI_COLOR_GREEN    "\x1b[32m"
+#define ANSI_COLOR_REVERSE  "\x1b[7m"
 #define ANSI_COLOR_RESET    "\x1b[0m"
 
 enum DaysOfWeek {
@@ -65,13 +66,19 @@ struct Month {
     {"December", 31}
 };
 
-struct Options {
-    int show_number_of_months;
-    enum DaysOfWeek weekday_start;
+struct date {
     int day;
     int month;
     int year;
-} options = { 1, MONDAY, 0, 0, 0 };
+} highlight_date = { 0, 0, 0 };
+
+struct Options {
+    int show_number_of_months;
+    int month_to_start_year;
+    enum DaysOfWeek weekday_start;
+    int month;
+    int year;
+} options = { 1, 1, MONDAY, 0, 0 };
 
 int strToInt(char *str) {
     char *p;
@@ -124,13 +131,13 @@ void get_month(char output[8][40], int month, int year) {
     
     strcat(output[1], "\x1b[0m");
     first_day = first_day_of_month(month, year);
-    printf("First day is: %d\n", first_day);
+
     for (day = 0; day < (first_day-(int)options.weekday_start+7)%7; day++)
         strcat(output[2], "   ");
 
     for (day = 1; day <= months[month-1].num_days; day++) {
-        if (day == options.day && year == options.year && month == options.month)
-            sprintf(temp, "\x1b[34m%2d\x1b[0m ", day);
+        if (day == highlight_date.day && year == highlight_date.year && month == highlight_date.month)
+            sprintf(temp, "\x1b[7m%2d\x1b[0m ", day);
         else
             sprintf(temp,"%2d ", day);
         strcat(output[2+line], temp);
@@ -180,12 +187,34 @@ void print_twelve_months(int month, int year) {
 }
 
 void usage(int exit_code) {
-    /* TODO */
+    puts("");
+    puts("USAGE");
+    puts("    acal [options] [ [day] [month] [year] ]");
+    puts("");
+    puts("DESCRIPTION");
+    puts("    Another CALendar displays a basic calendar. If no arguments");
+	puts("    are specified, the current month is displayed.");
+    puts("");
+    puts("OPTIONS");
+    puts("    -1, --one		- display single month output (default)");
+    puts("    -3, --three   - display 3 months spanning the date");
+    puts("    -s, --sunday  - use Sunday as the first day of the week");
+    puts("    -m, --monday  - use Monday as the first day of the week");
+    puts("    -y, --year    - display a calendar for the whole year");
+    puts("    -Y, --twelve  - display a calendar for the next twelve months");
+    puts("    -h, --help    - display this help");
+    puts("    -v, --version - output version information");
+    puts("");
+    puts("EXAMPLES");
+    puts("    acal -3");
+    puts("    acal 12 2016");
+    puts("    acal -y 20 07 1971");
+
     exit(exit_code);
 }
 
 void version() {
-    /* TODO */
+    puts("acal - Another CALendar 0.1 (14 December 2016)");
     exit(0);
 }
 
@@ -204,7 +233,7 @@ int decode_switches(int argc, char *argv[]) {
         {NULL, 0, NULL, 0}
     };
 
-    while ((optc = getopt_long(argc, argv, "13yYsmhV", longopts, NULL)) != -1) {
+    while ((optc = getopt_long(argc, argv, "13yYsmhv", longopts, NULL)) != -1) {
         switch (optc) {
             case '1':
                 options.show_number_of_months = 1;
@@ -214,9 +243,11 @@ int decode_switches(int argc, char *argv[]) {
                 break;
             case 'Y':
                 options.show_number_of_months = 12;
+                options.month_to_start_year = options.month;
                 break;
             case 'y':
-                /* TODO */
+                options.show_number_of_months = 12;
+                options.month_to_start_year = 1;
                 break;
             case 's':
                 options.weekday_start = SUNDAY;
@@ -227,7 +258,7 @@ int decode_switches(int argc, char *argv[]) {
             case 'h':
                 usage(0);
                 break;
-            case 'V':
+            case 'v':
                 version();
                 break;
             default:
@@ -237,9 +268,11 @@ int decode_switches(int argc, char *argv[]) {
 
     if (optind < argc) {
         if (argc-optind == 3) {
-            options.day = strToInt(argv[optind++]);
-            options.month = strToInt(argv[optind++]);
-            options.year = strToInt(argv[optind++]);
+            highlight_date.day = strToInt(argv[optind++]);
+            highlight_date.month = strToInt(argv[optind++]);
+            highlight_date.year = strToInt(argv[optind++]);
+            options.month = highlight_date.month;
+            options.year = highlight_date.year;
         } else if (argc-optind == 2) {
             options.month = strToInt(argv[optind++]);
             options.year = strToInt(argv[optind++]);
@@ -255,12 +288,14 @@ int decode_switches(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-    /* Get todays date */
     time_t t = time(0);
     struct tm *now = localtime(&t);
-    options.day = now->tm_mday;
-    options.month = now->tm_mon+1;
-    options.year = now->tm_year+1900;
+    highlight_date.day= now->tm_mday;
+    highlight_date.month = now->tm_mon+1;
+    highlight_date.year = now->tm_year+1900;
+
+    options.month = highlight_date.month;
+    options.year = highlight_date.year;
 
     decode_switches(argc, argv);
 
@@ -272,7 +307,7 @@ int main(int argc, char *argv[]) {
             print_three_months(options.month, options.year);
             break;
         case 12:
-            print_twelve_months(options.month, options.year);
+            print_twelve_months(options.month_to_start_year, options.year);
             break;
     }
 }
