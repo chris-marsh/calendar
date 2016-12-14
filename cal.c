@@ -96,7 +96,7 @@ int first_day_of_month(int month, int year) {
         month += 12;
         year--;
     }
-    int century = year / 101;
+    int century = year / 100;
     year = year % 100;
     return (((13 * (month + 1)) / 5) +
             (century / 4) + (5 * century) +
@@ -116,13 +116,18 @@ void get_month(char output[8][40], int month, int year) {
 
     sprintf(output[0], "    %s %d", months[month-1].longName, year);
     sprintf(output[1], "\x1b[34m");
+    
     for (day=0; day <7; day++) {
         sprintf(temp, "%s ", weekdays[(day+options.weekday_start) % 7].shortName);
         strcat(output[1], temp);
     }
+    
     strcat(output[1], "\x1b[0m");
     first_day = first_day_of_month(month, year);
-    for (day = 0; day < (first_day-(int)options.weekday_start+7)%7; day++) strcat(output[2], "   ");
+    printf("First day is: %d\n", first_day);
+    for (day = 0; day < (first_day-(int)options.weekday_start+7)%7; day++)
+        strcat(output[2], "   ");
+
     for (day = 1; day <= months[month-1].num_days; day++) {
         if (day == options.day && year == options.year && month == options.month)
             sprintf(temp, "\x1b[34m%2d\x1b[0m ", day);
@@ -192,7 +197,7 @@ int decode_switches(int argc, char *argv[]) {
         {"three",    no_argument, NULL, '3'},
         {"twelve",   no_argument, NULL, 'Y'},
         {"year",     no_argument, NULL, 'y'},
-        {"saturday", no_argument, NULL, 's'},
+        {"sunday",   no_argument, NULL, 's'},
         {"monday",   no_argument, NULL, 'm'},
         {"help",     no_argument, NULL, 'h'},
         {"version",  no_argument, NULL, 'V'},
@@ -214,10 +219,10 @@ int decode_switches(int argc, char *argv[]) {
                 /* TODO */
                 break;
             case 's':
-                /* TODO */
+                options.weekday_start = SUNDAY;
                 break;
             case 'm':
-                /* TODO */
+                options.weekday_start = MONDAY;
                 break;
             case 'h':
                 usage(0);
