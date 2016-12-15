@@ -17,6 +17,8 @@
 #include <time.h>
 #include <getopt.h>
 
+#define INT_MAX 2147483647 
+
 #define ANSI_COLOR_BLUE     "\x1b[34m"
 #define ANSI_COLOR_GREEN    "\x1b[32m"
 #define ANSI_COLOR_REVERSE  "\x1b[7m"
@@ -82,17 +84,12 @@ int strToInt(char *str) {
     return strtol(str, &p, 10);
 }
 
-void dec_month(int num, int *month, int *year) {
-    *year = *year - ((*month+num) / 12);
-    *month = *month - num;
-    if (*month < 0) *month = (12 - *month) % 12;
-    if (*month == 0) *month = 12;
-}
-
 void inc_month(int num, int *month, int *year) {
-    *year = *year + ((*month+num) / 12);
-    *month = *month + num;
-    if (*month > 12) *month = *month % 12;
+    int tempYear  = *year;
+    int tempMonth = *month - 1;
+
+    *year = (tempYear * 12 + tempMonth + num) / 12;
+    *month = (tempYear * 12 + tempMonth + num) % 12 + 1;
 }
 
 int first_day_of_month(int month, int year) {
@@ -107,7 +104,7 @@ int first_day_of_month(int month, int year) {
             year + (year / 4)) % 7;
 }
 
-void get_month(char output[8][40], int month, int year) {
+void get_month(char calendar[8][40], int month, int year) {
     int day, first_day, current_day, line=0;
     char temp[41];
 
@@ -116,28 +113,33 @@ void get_month(char output[8][40], int month, int year) {
         months[month-1].num_days = 29;
     }
 
-    for (line=0; line<8; line++) output[line][0]='\0'; line=0;
+    for (line=0; line<8; line++)
+        calendar[line][0]='\0';
+    line=0;
 
-    sprintf(output[0], "    %s %d", months[month-1].longName, year);
-    sprintf(output[1], "\x1b[34m");
+    sprintf(calendar[0], "    %s %d", months[month-1].longName, year);
+    strcpy(calendar[1], ANSI_COLOR_BLUE);
     
     for (day=0; day <7; day++) {
-        sprintf(temp, "%s ", weekdays[(day+options.weekday_start) % 7].shortName);
-        strcat(output[1], temp);
+        sprintf(calendar[1], "%s%s ",
+                calendar[1],
+                weekdays[(day+options.weekday_start) % 7].shortName);
     }
     
-    strcat(output[1], "\x1b[0m");
+    strcat(calendar[1], ANSI_COLOR_RESET);
     first_day = first_day_of_month(month, year);
 
     for (day = 0; day < (first_day-(int)options.weekday_start+7)%7; day++)
-        strcat(output[2], "   ");
+        strcat(calendar[2], "   ");
 
     for (day = 1; day <= months[month-1].num_days; day++) {
-        if (day == highlight_date.day && year == highlight_date.year && month == highlight_date.month)
-            sprintf(temp, "\x1b[7m%2d\x1b[0m ", day);
+        if (day == highlight_date.day &&
+            year == highlight_date.year &&
+            month == highlight_date.month)
+            sprintf(temp, "%s%2d%s ", ANSI_COLOR_REVERSE, day, ANSI_COLOR_RESET);
         else
             sprintf(temp,"%2d ", day);
-        strcat(output[2+line], temp);
+        strcat(calendar[2+line], temp);
         current_day = (first_day+day-1) % 7;
         if (current_day == (options.weekday_start+6)%7) line++;
     }
@@ -156,8 +158,8 @@ void print_three_months(int month, int year) {
     int i;
     char calendar[3][8][40];
 
-    dec_month(1, &month, &year);
-
+    inc_month(-1, &month, &year);
+    
     for (i=0; i<3; i++) {
         get_month(calendar[i], month, year);
         inc_month(1, &month, &year);
@@ -171,6 +173,7 @@ void print_three_months(int month, int year) {
 void print_twelve_months(int month, int year) {
     int i;
 
+    printf("Year starting from %d-%d\n", month, year);
     inc_month(1, &month, &year);
     for (i=0; i<4; i++) {
         print_three_months(month, year);
@@ -240,7 +243,7 @@ int decode_switches(int argc, char *argv[]) {
                 break;
             case 'Y':
                 options.show_number_of_months = 12;
-                options.month_to_start_year = options.month;
+                options.month_to_start_year = options.month; /* TODO: FIX ME */
                 break;
             case 'y':
                 options.show_number_of_months = 12;
@@ -283,14 +286,14 @@ int decode_switches(int argc, char *argv[]) {
     if (options.month<1 || options.month>12)
         error("acal: illegal month value: use 1-12");
 
-    if (options.year<1 || options.year>2147483646)
+    if (options.year<1 || options.year>=INT_MAX)
         error("acal: illegal year value: out of range");
 
     return optc;
 }
 
 int main(int argc, char *argv[]) {
-
+    
     time_t t = time(0);
     struct tm *now = localtime(&t);
     highlight_date.day= now->tm_mday;
@@ -301,8 +304,6 @@ int main(int argc, char *argv[]) {
     options.year = highlight_date.year;
 
     decode_switches(argc, argv);
-
-    printf("Month: %d    Year: %d\n", options.month, options.year);
 
     switch (options.show_number_of_months) {
         case 1:
@@ -315,4 +316,5 @@ int main(int argc, char *argv[]) {
             print_twelve_months(options.month_to_start_year, options.year);
             break;
     }
+    return 0;
 }
