@@ -1,2 +1,11 @@
-acal : acal.c
-	gcc -std=c89 -Wall -o acal acal.c
+CC=gcc
+CFLAGS=-std=c89 -Wall -Wextra
+SOURCES=acal.c
+EXECUTABLE = acal
+
+$(EXECUTABLE): $(SOURCES)
+	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(SOURCES)
+
+.PHONY: clean
+clean:
+	rm $(EXECUTABLE)

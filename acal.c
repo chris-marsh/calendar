@@ -1,31 +1,39 @@
-/**********************************************************************************
- * Copyright (C) 2016, Chris Marsh <https://github.com/chris-marsh/calendar>      *
- *                                                                                *
- * This program is free software: you can redistribute it and/or modify it under  *
- * the terms of the GNU General Public License as published by the Free Software  *
- * Foundation, either version 3 of the License, or any later version.             *
- *                                                                                *
- * This program is distributed in the hope that it will be useful, but WITHOUT    *
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS  *
- * FOR A PARTICULAR PURPOSE.  See the GNU General Public License at               *
- * <http://www.gnu.org/licenses/> for more details.                               *
- **********************************************************************************/
+/******************************************************************************
+ *                                                                            *
+ *           Another CALendar Copyright (C) 2016 Chris Marsh                  *
+ *               <https://github.com/chris-marsh/calendar                     *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify it    *
+ * under the terms of the GNU General Public License as published by the      *
+ * Free Software Foundation, either version 3 of the License, or any later    *
+ * version.                                                                   *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful, but        *
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY *
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License   *
+ * at <http://www.gnu.org/licenses/> for more details.                        *
+ *                                                                            *
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <getopt.h>
+#include <limits.h>
 
-#define INT_MAX 2147483647 
+#define VERSION "0.1"
 
-#define ANSI_COLOR_BLUE     "\x1b[34m"
-#define ANSI_COLOR_GREEN    "\x1b[32m"
-#define ANSI_COLOR_REVERSE  "\x1b[7m"
-#define ANSI_COLOR_RESET    "\x1b[0m"
+#define ANSI_BLUE     "\x1b[34m"
+#define ANSI_REVERSE  "\x1b[7m"
+#define ANSI_RESET    "\x1b[0m"
+
+#define CAL_HEIGHT 8
+#define CAL_WIDTH 36 /* Visible is 21,allow control chars(2*7) and term(1) */
+#define MAX_YEAR (INT_MAX / 12 - 1)  /* Limited by the inc_month function */
 
 enum DaysOfWeek {
-    SUNDAY,
+    SUNDAY = 0,
     MONDAY,
     TUESDAY,
     WEDNESDAY,
@@ -37,7 +45,7 @@ enum DaysOfWeek {
 struct Weekday {
     char *longName;
     char *shortName;
-} weekdays[7] = {
+} weekdays[] = {
     {"Sunday", "Su"},
     {"Monday", "Mo"},
     {"Tuesday", "Tu"},
@@ -50,7 +58,7 @@ struct Weekday {
 struct Month {
     char *longName;
     int num_days;
-} months[12] = {
+} months[] = {
     {"January", 31},
     {"February", 28},
     {"March", 31},
@@ -65,7 +73,7 @@ struct Month {
     {"December", 31}
 };
 
-struct date {
+struct Date {
     int day;
     int month;
     int year;
@@ -79,11 +87,20 @@ struct Options {
     int year;
 } options = { 1, 1, MONDAY, 0, 0 };
 
+
+/*
+ * Convert a string of digits to int
+ */
 int strToInt(char *str) {
     char *p;
     return strtol(str, &p, 10);
 }
 
+
+/*
+ * Add -/+num to month and inc/dec year as necessary. To simplify the
+ * calculation, months are converted to 0 base and years converted to months.
+ */
 void inc_month(int num, int *month, int *year) {
     int tempYear  = *year;
     int tempMonth = *month - 1;
@@ -92,6 +109,13 @@ void inc_month(int num, int *month, int *year) {
     *month = (tempYear * 12 + tempMonth + num) % 12 + 1;
 }
 
+
+/*
+ * Given month and year, calculate the day of week of the first day.
+ * Day is returned as an integer 0-6, Sun-Sat
+ * Based on Zeller's congruence;
+ * https://en.wikipedia.org/wiki/Zeller's_congruence
+ */
 int first_day_of_month(int month, int year) {
     if (month < 3) {
         month += 12;
@@ -104,76 +128,107 @@ int first_day_of_month(int month, int year) {
             year + (year / 4)) % 7;
 }
 
-void get_month(char calendar[8][40], int month, int year) {
-    int day, first_day, current_day, line=0;
-    char temp[41];
 
+/*
+ * Given month and year, populate the string array with a calendar month.
+ */
+void get_month(char calendar[CAL_HEIGHT][CAL_WIDTH], int month, int year) {
+    int day, first_day, line=0;
+
+    /* Adjust Februarys days for leap year */
     if ((month == 2) &&
             ((!(year % 4) && (year % 100)) || !(year % 400))) {
         months[month-1].num_days = 29;
     }
 
-    for (line=0; line<8; line++)
+    /* Initialize calenVdar strings - needed when appending */
+    for (line=0; line<CAL_HEIGHT; line++)
         calendar[line][0]='\0';
-    line=0;
 
+    /* Calendar month/year header */
     sprintf(calendar[0], "    %s %d", months[month-1].longName, year);
-    strcpy(calendar[1], ANSI_COLOR_BLUE);
-    
+
+    /* Day column headers */
+    strcpy(calendar[1], ANSI_BLUE);
     for (day=0; day <7; day++) {
         sprintf(calendar[1], "%s%s ",
                 calendar[1],
                 weekdays[(day+options.weekday_start) % 7].shortName);
     }
-    
-    strcat(calendar[1], ANSI_COLOR_RESET);
-    first_day = first_day_of_month(month, year);
+    strcat(calendar[1], ANSI_RESET);
 
+    /* Pad line to 1st day of month */
+    first_day = first_day_of_month(month, year);
     for (day = 0; day < (first_day-(int)options.weekday_start+7)%7; day++)
         strcat(calendar[2], "   ");
 
+    /* Add each day of month, incrementing to next line on weekend */
+    line = 2;
     for (day = 1; day <= months[month-1].num_days; day++) {
         if (day == highlight_date.day &&
-            year == highlight_date.year &&
-            month == highlight_date.month)
-            sprintf(temp, "%s%2d%s ", ANSI_COLOR_REVERSE, day, ANSI_COLOR_RESET);
-        else
-            sprintf(temp,"%2d ", day);
-        strcat(calendar[2+line], temp);
-        current_day = (first_day+day-1) % 7;
-        if (current_day == (options.weekday_start+6)%7) line++;
+                year == highlight_date.year &&
+                month == highlight_date.month) {
+            sprintf(calendar[line],
+                    "%s%s%2d%s ",
+                    calendar[line],
+                    ANSI_REVERSE, day, ANSI_RESET);
+        } else {
+            sprintf(calendar[line],
+                    "%s%2d ",
+                    calendar[line],
+                    day);
+        }
+
+        /* if current_day == weekend */
+        if (((first_day+day - 1) % 7) == 
+                (((int)options.weekday_start + 6) % 7))
+            line++;
     }
 }
 
+
+/*
+ * Output a single calendar month
+ */
 void print_one_month() {
-    char calendar[8][40];
+    char calendar[CAL_HEIGHT][CAL_WIDTH];
     int line;
 
     get_month(calendar, options.month, options.year);
-    for (line=0; line<8; line++)
+    for (line=0; line<CAL_HEIGHT; line++)
         puts(calendar[line]);
 }
 
+
+/*
+ * Output 3 calendar months in vertical row
+ */
 void print_three_months(int month, int year) {
     int i;
-    char calendar[3][8][40];
+    char calendar[3][CAL_HEIGHT][CAL_WIDTH];
 
     inc_month(-1, &month, &year);
-    
+
     for (i=0; i<3; i++) {
         get_month(calendar[i], month, year);
         inc_month(1, &month, &year);
     }
 
-    for (i=0; i<8; i++) {
-        printf("%-21s  %-21s  %-21s\n", calendar[0][i], calendar[1][i], calendar[2][i]);
+    for (i=0; i<CAL_HEIGHT; i++) {
+        printf("%-21s  %-21s  %-21s\n",
+                calendar[0][i],
+                calendar[1][i],
+                calendar[2][i]);
     }
 }
 
+
+/*
+ * Output a 12 month calendar arranged as a 3x4
+ */
 void print_twelve_months(int month, int year) {
     int i;
 
-    printf("Year starting from %d-%d\n", month, year);
     inc_month(1, &month, &year);
     for (i=0; i<4; i++) {
         print_three_months(month, year);
@@ -181,6 +236,10 @@ void print_twelve_months(int month, int year) {
     }
 }
 
+
+/*
+ * Output help/usage and exit the program
+ */
 void usage(int exit_code) {
     puts("");
     puts("USAGE");
@@ -191,7 +250,7 @@ void usage(int exit_code) {
     puts("    are specified, the current month is displayed.");
     puts("");
     puts("OPTIONS");
-    puts("    -1, --one		- display single month output (default)");
+    puts("    -1, --one     - display single month output (default)");
     puts("    -3, --three   - display 3 months spanning the date");
     puts("    -s, --sunday  - use Sunday as the first day of the week");
     puts("    -m, --monday  - use Monday as the first day of the week");
@@ -208,16 +267,27 @@ void usage(int exit_code) {
     exit(exit_code);
 }
 
+
+/*
+ * Ouput a version string and exit the program
+ */
 void version() {
-    puts("acal - Another CALendar 0.1 (14 December 2016)");
+    printf("acal - Another CALendar %s (compiled %s)\n", VERSION, __DATE__);
     exit(0);
 }
 
+
+/*
+ * Ouput an error message and exit the program with an error statuis code
+ */
 void error(char *message) {
     puts(message);
     exit(-1);
 }
 
+/*
+ * Parse the user given command line to set options
+ */
 int decode_switches(int argc, char *argv[]) {
     int optc;
 
@@ -283,23 +353,30 @@ int decode_switches(int argc, char *argv[]) {
             usage(-1);
     }
 
-    if (options.month<1 || options.month>12)
+    if (options.month < 1 || options.month > 12)
         error("acal: illegal month value: use 1-12");
 
-    if (options.year<1 || options.year>=INT_MAX)
+    if (options.year < 1 || options.year >= MAX_YEAR)
         error("acal: illegal year value: out of range");
 
     return optc;
 }
 
+
+/*
+ * Entry point of the program. Set the defaults then exec as needed from
+ * command line options.
+ */
 int main(int argc, char *argv[]) {
-    
+
+    /* Initialize highlight to todays date */
     time_t t = time(0);
     struct tm *now = localtime(&t);
     highlight_date.day= now->tm_mday;
     highlight_date.month = now->tm_mon+1;
     highlight_date.year = now->tm_year+1900;
 
+    /* Default calendar to current month/year */
     options.month = highlight_date.month;
     options.year = highlight_date.year;
 
