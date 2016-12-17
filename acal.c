@@ -313,7 +313,7 @@ int decode_switches(int argc, char *argv[]) {
                 break;
             case 'Y':
                 options.show_number_of_months = 12;
-                options.month_to_start_year = options.month; /* TODO: FIX ME */
+                options.month_to_start_year = -1;
                 break;
             case 'y':
                 options.show_number_of_months = 12;
@@ -338,16 +338,16 @@ int decode_switches(int argc, char *argv[]) {
 
     if (optind < argc) {
         if (argc-optind == 3) {
-            highlight_date.day = strToInt(argv[optind++]);
-            highlight_date.month = strToInt(argv[optind++]);
-            highlight_date.year = strToInt(argv[optind++]);
+            highlight_date.day = strToInt(argv[optind]);
+            highlight_date.month = strToInt(argv[optind+1]);
+            highlight_date.year = strToInt(argv[optind+2]);
             options.month = highlight_date.month;
             options.year = highlight_date.year;
         } else if (argc-optind == 2) {
-            options.month = strToInt(argv[optind++]);
-            options.year = strToInt(argv[optind++]);
+            options.month = strToInt(argv[optind]);
+            options.year = strToInt(argv[optind+1]);
         } else if (argc-optind == 1) {
-            options.year = strToInt(argv[optind++]);
+            options.year = strToInt(argv[optind]);
             options.show_number_of_months = 12;
         } else
             usage(-1);
@@ -390,6 +390,8 @@ int main(int argc, char *argv[]) {
             print_three_months(options.month, options.year);
             break;
         case 12:
+            if (options.month_to_start_year == -1)
+                options.month_to_start_year = options.month;
             print_twelve_months(options.month_to_start_year, options.year);
             break;
     }
