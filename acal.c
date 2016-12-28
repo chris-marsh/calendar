@@ -92,8 +92,7 @@ struct Options {
  * Convert a string of digits to int
  */
 int strToInt(char *str) {
-    char *p;
-    return strtol(str, &p, 10);
+    return strtol(str, NULL, 10);
 }
 
 
@@ -141,7 +140,7 @@ void get_month(char calendar[CAL_HEIGHT][CAL_WIDTH], int month, int year) {
         months[month-1].num_days = 29;
     }
 
-    /* Initialize calenVdar strings - needed when appending */
+    /* Initialize calendar strings - needed when appending */
     for (line=0; line<CAL_HEIGHT; line++)
         calendar[line][0]='\0';
 
@@ -190,7 +189,7 @@ void get_month(char calendar[CAL_HEIGHT][CAL_WIDTH], int month, int year) {
 /*
  * Output a single calendar month
  */
-void print_one_month() {
+void print_one_month(void) {
     char calendar[CAL_HEIGHT][CAL_WIDTH];
     int line;
 
@@ -271,7 +270,7 @@ void usage(int exit_code) {
 /*
  * Ouput a version string and exit the program
  */
-void version() {
+void version(void) {
     printf("acal - Another CALendar %s (compiled %s)\n", VERSION, __DATE__);
     exit(0);
 }
