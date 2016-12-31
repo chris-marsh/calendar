@@ -1,10 +1,10 @@
 CC=gcc
 CFLAGS=-std=c89 -Wall -Wextra
-SOURCES=acal.c
+SOURCES=acal.c main.c
 EXECUTABLE = acal
 
 $(EXECUTABLE): $(SOURCES)
-	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(SOURCES)
+	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(SOURCES) -I ./
 
 .PHONY: clean
 clean:
