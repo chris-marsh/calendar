@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-std=c89 -Wall -Wextra
+CFLAGS=-std=c89 -Wall -Wextra -g
 SOURCES=acal.c main.c
 EXECUTABLE = acal
 
